@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>📅 Недельное расписание</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 15px;
+            background: #f9f9f9;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .nav-btn {
+            padding: 8px 12px;
+            background: #007BFF;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .nav-btn:hover {
+            background: #0056b3;
+        }
+        .current-week {
+            font-weight: bold;
+            font-size: 18px;
+            color: #333;
+        }
+        .calendars-container {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .calendar-box {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 15px;
+            width: 300px;
+            text-align: center;
+        }
+        .calendar-title {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #007BFF;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #007BFF;
+        }
+        .week-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .day-header {
+            font-weight: bold;
+            padding: 5px;
+            background: #f4f4f4;
+            font-size: 12px;
+        }
+        .day-cell {
+            min-height: 100px;
+            border: 1px solid #eee;
+            padding: 5px;
+            background: white;
+            position: relative;
+            font-size: 12px;
+        }
+        .day-date {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        .today {
+            background: #fff8e1 !important;
+        }
+        .today .day-date {
+            color: #ff6f00;
+            background: #ffc107;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: inline-block;
+            text-align: center;
+            line-height: 24px;
+        }
+        .booking {
+            background: #e3f2fd;
+            padding: 2px 4px;
+            border-radius: 3px;
+            margin: 2px 0;
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            padding: 2px 6px;
+            font-size: 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+        .delete-btn:hover {
+            background: #c82333;
+        }
+        .add-form {
+            margin-top: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            max-width: 500px;
+            margin: 30px auto;
+        }
+        input, button, select {
+            padding: 8px;
+            margin: 5px;
+        }
+        button {
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #218838;
+        }
+        .logout {
+            color: #dc3545;
+            text-decoration: none;
+        }
+        .logout:hover {
+            text-decoration: underline;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        @media (max-width: 768px) {
+            .calendars-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .calendar-box {
+                width: 100%;
+                max-width: 400px;
+            }
+            .week-grid {
+                grid-template-columns: 1fr;
+            }
+            .day-header, .day-cell {
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <div class="current-week">
+                📅 {{ month_name }} {{ year }} — Неделя с {{ week_dates[0].strftime('%d.%m') }} по {{ week_dates[6].strftime('%d.%m') }}
+            </div>
+            {% if request.query_params.error %}
+                <div class="error">❗ {{ request.query_params.error }}</div>
+            {% endif %}
+        </div>
+        <div class="nav-buttons">
+            <a href="/calendar?start_date={{ prev_week }}" class="nav-btn">⬅️ Пред. неделя</a>
+            <a href="/calendar?start_date={{ next_week }}" class="nav-btn">След. неделя ➡️</a>
+            <a href="/calendar?start_date={{ next_month_monday }}" class="nav-btn">⏭️ След. месяц</a>
+            <a href="/calendar" class="nav-btn">🔄 Текущая</a>
+            <a href="/logout" class="logout">🚪 Выйти</a>
+        </div>
+    </div>
+
+    <!-- Три календаря -->
+    <div class="calendars-container">
+        {% for worker in workers %}
+        <div class="calendar-box">
+            <div class="calendar-title">{{ worker }}</div>
+            <div class="week-grid">
+                <!-- Заголовки дней недели -->
+                <div class="day-header">Пн</div>
+                <div class="day-header">Вт</div>
+                <div class="day-header">Ср</div>
+                <div class="day-header">Чт</div>
+                <div class="day-header">Пт</div>
+                <div class="day-header">Сб</div>
+                <div class="day-header">Вс</div>
+
+                <!-- Ячейки дней -->
+                {% for day_date in week_dates %}
+                <div class="day-cell {% if day_date == today %}today{% endif %}">
+                    <span class="day-date">{{ day_date.day }}</span>
+                    {% if day_date in bookings_by_date_worker %}
+                        {% for b in bookings_by_date_worker[day_date][worker] %}
+                            <div class="booking">
+                                <span>{{ b.surname }} ({{ b.time }})</span>
+                                <form method="post" action="/delete_booking/{{ b.id }}" style="display:inline;" onsubmit="return confirm('Удалить запись?')">
+                                    <button type="submit" class="delete-btn">🗑️</button>
+                                </form>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Форма добавления -->
+    <div class="add-form">
+        <h3>➕ Добавить запись</h3>
+        <form method="post" action="/add_booking">
+            <input type="hidden" name="start_date" value="{{ start_date }}">
+            <input type="text" name="surname" placeholder="Фамилия клиента" required>
+            <input type="date" name="date_str" required>
+            <select name="worker" required>
+                <option value="">— Выберите сотрудника —</option>
+                {% for worker in workers %}
+                    <option value="{{ worker }}">{{ worker }}</option>
+                {% endfor %}
+            </select>
+            <select name="time" required>
+                <option value="">— Выберите время —</option>
+                {% for slot in time_slots %}
+                    <option value="{{ slot }}">{{ slot }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Записать</button>
+        </form>
+    </div>
+
+</body>
+</html>
